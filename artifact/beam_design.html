@@ -1,0 +1,444 @@
+<title>ออกแบบหน้าตัดคาน คสล.</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: drafting-sheet tool — input rail on the left, verdict strip + section drawing + calc sheets on the right; stacks on phones */
+:root {
+  --bg: #eef1f4;
+  --paper: #ffffff;
+  --ink: #1b2430;
+  --muted: #5b6878;
+  --line: #d3dae2;
+  --accent: #1d5c8f;
+  --rebar: #b8322a;
+  --concrete: #d9dee4;
+  --ok: #1f7a4a;
+  --ok-bg: #e2f3e9;
+  --bad: #b3261e;
+  --bad-bg: #fbe6e4;
+  --warn-bg: #fff4d6;
+  --warn-fg: #7a5600;
+  --font-body: "IBM Plex Sans Thai", "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12171d; --paper: #1a2129; --ink: #e3e8ee; --muted: #94a2b2; --line: #2c3743;
+    --accent: #6fb0e6; --rebar: #ef6a5f; --concrete: #39434f;
+    --ok: #6fd39c; --ok-bg: #173225; --bad: #ff8a80; --bad-bg: #3a1c1a;
+    --warn-bg: #3a2f12; --warn-fg: #f2c95b; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12171d; --paper: #1a2129; --ink: #e3e8ee; --muted: #94a2b2; --line: #2c3743;
+  --accent: #6fb0e6; --rebar: #ef6a5f; --concrete: #39434f;
+  --ok: #6fd39c; --ok-bg: #173225; --bad: #ff8a80; --bad-bg: #3a1c1a;
+  --warn-bg: #3a2f12; --warn-fg: #f2c95b; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body);
+  font-size: 15px; line-height: 1.55;
+}
+.wrap {
+  max-width: 1180px; margin: 0 auto;
+  padding-block: 24px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 20px;
+}
+header h1 { font-size: 1.6rem; margin: 0; line-height: 1.25; text-wrap: balance; font-weight: 700; }
+header p { margin: 4px 0 0; color: var(--muted); font-size: .9rem; }
+.layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 820px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+
+.panel { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+form.panel { display: grid; gap: 18px; }
+fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 10px; }
+legend {
+  font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--accent);
+  font-weight: 600; padding: 0; margin-bottom: 6px;
+}
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+label { display: grid; gap: 3px; font-size: .85rem; color: var(--muted); }
+input, select {
+  font: 500 .95rem var(--font-mono); color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; width: 100%; min-width: 0;
+}
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.main { display: grid; gap: 20px; min-width: 0; }
+.verdicts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 520px) { .verdicts { grid-template-columns: minmax(0, 1fr); } }
+.verdict { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 6px; }
+.verdict .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.verdict h2 { margin: 0; font-size: 1rem; font-weight: 600; }
+.pill { font-size: .78rem; font-weight: 600; padding: 2px 10px; border-radius: 999px; white-space: nowrap; }
+.pill.ok { background: var(--ok-bg); color: var(--ok); }
+.pill.bad { background: var(--bad-bg); color: var(--bad); }
+.cap { font: 500 1.35rem var(--font-mono); font-variant-numeric: tabular-nums; }
+.cap small { font-size: .8rem; color: var(--muted); font-family: var(--font-body); font-weight: 400; }
+.meter { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--ok); }
+.meter i.over { background: var(--bad); }
+.ratio { font-size: .8rem; color: var(--muted); }
+
+.sheet { display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 680px) { .sheet { grid-template-columns: minmax(0, 1fr); } }
+.drawing { display: grid; gap: 10px; justify-items: center; }
+.drawing svg { width: 100%; max-width: 260px; height: auto; }
+.spec { width: 100%; font-size: .88rem; display: grid; gap: 2px; }
+.spec div { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px dashed var(--line); padding: 3px 0; }
+.spec b { font-family: var(--font-mono); font-weight: 500; }
+
+.calc { display: grid; gap: 16px; min-width: 0; }
+.calc h3 { margin: 0 0 6px; font-size: .95rem; font-weight: 600; }
+.tbl { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+td { padding: 5px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+td:last-child { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+td .f { color: var(--muted); font-size: .78rem; display: block; }
+.notes { display: grid; gap: 6px; margin-top: 8px; }
+.note { background: var(--warn-bg); color: var(--warn-fg); border-radius: 6px; padding: 7px 10px; font-size: .84rem; }
+
+.ask { display: grid; gap: 10px; }
+.ask .head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ask h2 { margin: 0; font-size: 1rem; }
+.ask p.hint { margin: 0; color: var(--muted); font-size: .84rem; }
+.ask .bar { display: flex; gap: 8px; flex-wrap: wrap; }
+.ask input { font-family: var(--font-body); flex: 1 1 240px; }
+button {
+  font: 600 .88rem var(--font-body); border-radius: 6px; padding: 7px 14px; cursor: pointer;
+  border: 1px solid var(--accent); background: var(--accent); color: var(--paper);
+}
+button.ghost { background: transparent; color: var(--accent); }
+button:disabled { opacity: .55; cursor: default; }
+.answer { white-space: pre-wrap; font-size: .9rem; background: var(--bg); border-radius: 8px; padding: 12px; min-height: 2.5em; }
+.answer:empty { display: none; }
+footer { color: var(--muted); font-size: .8rem; }
+@media (prefers-reduced-motion: no-preference) { .meter i { transition: width .25s ease; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>ออกแบบหน้าตัดคาน คสล. สี่เหลี่ยมผืนผ้า</h1>
+    <p>วิธีกำลัง (Strength Design) ตาม ACI 318 / วสท. · หน่วย kg, cm, ksc, tf · เสริมเหล็กรับแรงดึงอย่างเดียว</p>
+  </header>
+
+  <div class="layout">
+    <form class="panel" id="form" autocomplete="off">
+      <fieldset>
+        <legend>หน้าตัด</legend>
+        <div class="row2">
+          <label>b (cm)<input id="b" type="number" step="5" min="10" value="25"></label>
+          <label>h (cm)<input id="h" type="number" step="5" min="15" value="50"></label>
+        </div>
+        <label>ระยะหุ้มถึงเหล็กปลอก (cm)<input id="cover" type="number" step="0.5" min="1.5" value="3"></label>
+      </fieldset>
+      <fieldset>
+        <legend>วัสดุ</legend>
+        <label>fc' คอนกรีต (ksc)<input id="fc" type="number" step="10" min="150" value="240"></label>
+        <div class="row2">
+          <label>เหล็กยืน fy<select id="fy"><option value="3000">SD30</option><option value="4000" selected>SD40</option><option value="5000">SD50</option></select></label>
+          <label>เหล็กปลอก fyt<select id="fyt"><option value="2400" selected>SR24</option><option value="3000">SD30</option><option value="4000">SD40</option></select></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>เหล็กเสริม</legend>
+        <div class="row2">
+          <label>เหล็กหลัก<select id="main"></select></label>
+          <label>เหล็กปลอก<select id="stir"></select></label>
+        </div>
+        <label>จำนวนขาเหล็กปลอก<input id="legs" type="number" step="1" min="2" max="6" value="2"></label>
+      </fieldset>
+      <fieldset>
+        <legend>แรงภายในประลัย</legend>
+        <div class="row2">
+          <label>Mu (tf-m)<input id="Mu" type="number" step="0.5" min="0" value="15"></label>
+          <label>Vu (tf)<input id="Vu" type="number" step="0.5" min="0" value="12"></label>
+        </div>
+      </fieldset>
+      <button type="button" class="ghost" id="reset">คืนค่าตัวอย่าง</button>
+    </form>
+
+    <div class="main">
+      <div class="verdicts">
+        <div class="verdict" id="vFlex"></div>
+        <div class="verdict" id="vShear"></div>
+      </div>
+
+      <div class="panel sheet">
+        <div class="drawing">
+          <svg id="svg" role="img" aria-label="รูปหน้าตัดคาน"></svg>
+          <div class="spec" id="spec"></div>
+        </div>
+        <div class="calc">
+          <div><h3>รายการคำนวณโมเมนต์ดัด</h3><div class="tbl"><table id="tFlex"></table></div><div class="notes" id="nFlex"></div></div>
+          <div><h3>รายการคำนวณแรงเฉือน</h3><div class="tbl"><table id="tShear"></table></div><div class="notes" id="nShear"></div></div>
+        </div>
+      </div>
+
+      <div class="panel ask" id="askPanel" hidden>
+        <div class="head">
+          <h2>ถาม Claude เรื่องหน้าตัดนี้</h2>
+          <button type="button" class="ghost" id="stop" hidden>หยุด</button>
+        </div>
+        <p class="hint">Claude จะได้รับข้อมูลและผลคำนวณบนหน้านี้ ใช้โควตาจากบัญชี Claude ของคุณเอง</p>
+        <div class="bar">
+          <button type="button" id="askReview">ตรวจและแนะนำการออกแบบ</button>
+        </div>
+        <div class="bar">
+          <input id="q" type="text" placeholder="เช่น ถ้าลดความลึกเหลือ 45 cm จะยังผ่านไหม">
+          <button type="button" id="askBtn">ถาม</button>
+        </div>
+        <div class="answer" id="answer"></div>
+      </div>
+
+      <footer>ใช้เพื่อการศึกษาและออกแบบเบื้องต้น ผลการออกแบบควรได้รับการตรวจสอบโดยวิศวกรผู้มีใบอนุญาต</footer>
+    </div>
+  </div>
+</div>
+
+<script>
+const BARS = { RB6: 6, RB9: 9, DB10: 10, DB12: 12, DB16: 16, DB20: 20, DB25: 25, DB28: 28, DB32: 32 };
+const ES = 2.04e6, ECU = 0.003;
+const $ = id => document.getElementById(id);
+const area = mm => Math.PI * (mm / 10) ** 2 / 4;
+const beta1 = fc => fc <= 280 ? 0.85 : Math.max(0.65, 0.85 - 0.05 * (fc - 280) / 70);
+function phiFlex(et, fy) {
+  const ey = fy / ES;
+  if (et >= 0.005) return 0.9;
+  if (et <= ey) return 0.65;
+  return 0.65 + 0.25 * (et - ey) / (0.005 - ey);
+}
+
+for (const k of Object.keys(BARS)) {
+  if (k.startsWith("DB")) $("main").add(new Option(k, k, false, k === "DB20"));
+}
+for (const k of ["RB6", "RB9", "DB10", "DB12"]) $("stir").add(new Option(k, k, false, k === "RB9"));
+
+const FIELDS = ["b", "h", "cover", "fc", "fy", "fyt", "main", "stir", "legs", "Mu", "Vu"];
+const DEFAULTS = Object.fromEntries(FIELDS.map(f => [f, $(f).value]));
+
+function read() {
+  const v = {};
+  for (const f of FIELDS) v[f] = (f === "main" || f === "stir") ? $(f).value : parseFloat($(f).value) || 0;
+  v.legs = Math.max(2, Math.round(v.legs));
+  return v;
+}
+
+function design(v) {
+  const db = BARS[v.main] / 10, ds = BARS[v.stir] / 10;
+  const d = v.h - v.cover - ds - db / 2;
+  if (d <= 0 || v.b <= 0 || v.fc <= 0) return null;
+  const b1 = beta1(v.fc);
+
+  // ---- flexure ----
+  const F = { d, b1, msgs: [] };
+  F.rhoMin = Math.max(0.8 * Math.sqrt(v.fc) / v.fy, 14 / v.fy);
+  F.rhoMax = 0.85 * b1 * v.fc / v.fy * ECU / (ECU + 0.005);
+  F.Rn = v.Mu * 1e5 / (0.9 * v.b * d * d);
+  const disc = 1 - 2 * F.Rn / (0.85 * v.fc);
+  if (disc < 0) {
+    F.rhoReq = NaN;
+    F.msgs.push("หน้าตัดเล็กเกินไป รับโมเมนต์ด้วยเหล็กรับแรงดึงอย่างเดียวไม่ได้ ให้เพิ่มขนาดหน้าตัด");
+  } else {
+    F.rhoReq = 0.85 * v.fc / v.fy * (1 - Math.sqrt(disc));
+    if (F.rhoReq > F.rhoMax) F.msgs.push("ρ ที่ต้องการเกิน ρmax (εt < 0.005) ควรเพิ่มขนาดหน้าตัด หรือออกแบบเป็นคานเสริมเหล็กรับแรงอัด");
+  }
+  const rho = Math.max(Number.isNaN(F.rhoReq) ? F.rhoMax : F.rhoReq, F.rhoMin);
+  F.AsReq = rho * v.b * d;
+  const Ab = area(BARS[v.main]);
+  F.n = Math.max(2, Math.ceil(F.AsReq / Ab - 1e-9));
+  F.As = F.n * Ab;
+  const clear = Math.max(2.5, db, 4 / 3 * 2.0);
+  F.perLayer = Math.max(0, Math.floor((v.b - 2 * (v.cover + ds) + clear) / (db + clear)));
+  if (F.perLayer < 2) F.msgs.push("ความกว้างคานไม่พอวางเหล็กอย่างน้อย 2 เส้น");
+  else if (F.n > F.perLayer) F.msgs.push(`เหล็ก ${F.n} เส้นวางใน 1 ชั้นไม่พอ (สูงสุด ${F.perLayer} เส้น/ชั้น) ต้องวาง 2 ชั้นหรือใช้เหล็กใหญ่ขึ้น`);
+  F.a = F.As * v.fy / (0.85 * v.fc * v.b);
+  F.c = F.a / b1;
+  F.et = ECU * (d - F.c) / F.c;
+  F.phi = phiFlex(F.et, v.fy);
+  F.phiMn = F.phi * F.As * v.fy * (d - F.a / 2) / 1e5;
+  if (F.et < 0.004) F.msgs.push(`εt = ${F.et.toFixed(4)} < 0.004 ไม่เป็นไปตามข้อกำหนดความเหนียวของคาน`);
+  F.ok = F.phiMn >= v.Mu && F.et >= 0.004 && F.perLayer >= 2 && F.n <= F.perLayer;
+
+  // ---- shear ----
+  const S = { msgs: [] }, Vu = v.Vu * 1000, phi = 0.75, sq = Math.sqrt(v.fc);
+  S.Vc = 0.53 * sq * v.b * d;
+  S.Av = v.legs * area(BARS[v.stir]);
+  S.Vs = Math.max(0, Vu / phi - S.Vc);
+  S.ok = true;
+  if (S.Vs > 2.1 * sq * v.b * d) { S.ok = false; S.msgs.push("Vs ที่ต้องการเกิน 2.1√fc' b d ต้องเพิ่มขนาดหน้าตัด"); }
+  S.sMax = S.Vs > 1.1 * sq * v.b * d ? Math.min(d / 4, 30) : Math.min(d / 2, 60);
+  S.sMax = Math.min(S.sMax, S.Av * v.fyt / (0.2 * sq * v.b), S.Av * v.fyt / (3.5 * v.b));
+  S.sReq = S.Vs > 0 ? S.Av * v.fyt * d / S.Vs : null;
+  if (Vu <= 0.5 * phi * S.Vc) S.msgs.push("Vu ≤ φVc/2 ตามทฤษฎีไม่ต้องใช้เหล็กปลอก (แนะนำให้ใส่เหล็กปลอกน้อยสุด)");
+  else if (S.Vs === 0) S.msgs.push("Vu ≤ φVc ใช้เหล็กปลอกน้อยสุด");
+  S.s = Math.floor((S.sReq ? Math.min(S.sMax, S.sReq) : S.sMax) * 2) / 2;
+  if (S.s < 5) { S.ok = false; S.msgs.push("ระยะเรียงเหล็กปลอกน้อยเกินไป ให้เพิ่มขนาดหรือจำนวนขาเหล็กปลอก หรือขยายหน้าตัด"); }
+  S.phiVn = (S.s > 0 ? phi * (S.Vc + S.Av * v.fyt * d / S.s) : phi * S.Vc) / 1000;
+  S.ok = S.ok && S.phiVn * 1000 >= Vu;
+  S.Vc /= 1000; S.Vs /= 1000;
+  return { F, S };
+}
+
+const fx = (x, n = 2) => Number.isFinite(x) ? x.toFixed(n) : "–";
+const esc = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+const rows = list => list.map(([k, f, val]) => `<tr><td>${k}${f ? `<span class="f">${f}</span>` : ""}</td><td>${val}</td></tr>`).join("");
+const notes = msgs => msgs.map(m => `<div class="note">${esc(m)}</div>`).join("");
+
+function verdict(title, ok, cap, unit, demand) {
+  const r = cap > 0 ? demand / cap : Infinity;
+  const w = Math.min(100, Number.isFinite(r) ? r * 100 : 100);
+  return `<div class="top"><h2>${title}</h2><span class="pill ${ok ? "ok" : "bad"}">${ok ? "ผ่าน" : "ไม่ผ่าน"}</span></div>
+    <div class="cap">${fx(cap)} <small>${unit} รับได้ · ต้องการ ${fx(demand)}</small></div>
+    <div class="meter"><i class="${r > 1 ? "over" : ""}" style="width:${w}%"></i></div>
+    <div class="ratio">อัตราส่วนใช้งาน ${Number.isFinite(r) ? r.toFixed(2) : "–"}</div>`;
+}
+
+function drawSection(v, F) {
+  const db = BARS[v.main] / 10, ds = BARS[v.stir] / 10, m = 14;
+  const W = v.b + 2 * m, H = v.h + 2 * m;
+  const p = [];
+  p.push(`<rect x="${m}" y="${m}" width="${v.b}" height="${v.h}" fill="var(--concrete)" stroke="var(--ink)" stroke-width="0.5"/>`);
+  const so = v.cover + ds / 2;
+  p.push(`<rect x="${m + so}" y="${m + so}" width="${v.b - 2 * so}" height="${v.h - 2 * so}" rx="${2 * ds}" fill="none" stroke="var(--accent)" stroke-width="${ds}"/>`);
+  const x0 = m + v.cover + ds + db / 2, x1 = m + v.b - v.cover - ds - db / 2;
+  const per = Math.max(2, F.perLayer);
+  let left = F.n, layer = 0;
+  while (left > 0) {
+    let k = Math.min(per, left);
+    const y = m + v.h - (v.cover + ds + db / 2 + layer * (db + 2.5));
+    for (let i = 0; i < k; i++) {
+      const x = k > 1 ? x0 + i * (x1 - x0) / (k - 1) : m + v.b / 2;
+      p.push(`<circle cx="${x}" cy="${y}" r="${db / 2}" fill="var(--rebar)"/>`);
+    }
+    left -= k; layer++;
+  }
+  const yt = m + v.cover + ds + db / 2;
+  for (const x of [x0, x1]) p.push(`<circle cx="${x}" cy="${yt}" r="${db / 2}" fill="var(--muted)"/>`);
+  const fs = Math.max(3, Math.min(W, H) * 0.055);
+  p.push(`<line x1="${m}" y1="${m + v.h + 5}" x2="${m + v.b}" y2="${m + v.h + 5}" stroke="var(--muted)" stroke-width="0.3"/>`);
+  p.push(`<text x="${m + v.b / 2}" y="${m + v.h + 6 + fs}" font-size="${fs}" text-anchor="middle" fill="var(--muted)" font-family="IBM Plex Mono, monospace">b = ${v.b}</text>`);
+  p.push(`<line x1="${m + v.b + 5}" y1="${m}" x2="${m + v.b + 5}" y2="${m + v.h}" stroke="var(--muted)" stroke-width="0.3"/>`);
+  p.push(`<text transform="translate(${m + v.b + 7 + fs * 0.8} ${m + v.h / 2}) rotate(90)" font-size="${fs}" text-anchor="middle" fill="var(--muted)" font-family="IBM Plex Mono, monospace">h = ${v.h}</text>`);
+  const svg = $("svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.style.maxHeight = "340px";
+  svg.innerHTML = p.join("");
+}
+
+let last = null;
+function render() {
+  const v = read();
+  try { localStorage.setItem("beam-inputs", JSON.stringify(Object.fromEntries(FIELDS.map(f => [f, $(f).value])))); } catch (e) {}
+  const r = design(v);
+  if (!r) {
+    $("vFlex").innerHTML = `<div class="note">ความลึกหน้าตัดไม่พอสำหรับระยะหุ้มและเหล็กเสริม</div>`;
+    $("vShear").innerHTML = ""; last = null; return;
+  }
+  const { F, S } = r;
+  last = { v, F, S };
+  $("vFlex").innerHTML = verdict("โมเมนต์ดัด", F.ok, F.phiMn, "tf-m", v.Mu);
+  $("vShear").innerHTML = verdict("แรงเฉือน", S.ok, S.phiVn, "tf", v.Vu);
+  drawSection(v, F);
+  $("spec").innerHTML = `
+    <div><span>เหล็กล่าง</span><b>${F.n}-${v.main}</b></div>
+    <div><span>เหล็กบน (ยึดปลอก)</span><b>2-${v.main}</b></div>
+    <div><span>เหล็กปลอก</span><b>${v.stir} @ ${S.s} cm</b></div>
+    <div><span>จำนวนขา</span><b>${v.legs}</b></div>`;
+  $("tFlex").innerHTML = rows([
+    ["ความลึกประสิทธิผล d", "h − หุ้ม − ปลอก − db/2", `${fx(F.d)} cm`],
+    ["β₁", "", fx(F.b1, 3)],
+    ["Rn", "Mu / (φ b d²)", `${fx(F.Rn)} ksc`],
+    ["ρ ที่ต้องการ", "0.85fc'/fy (1 − √(1 − 2Rn/0.85fc'))", fx(F.rhoReq, 5)],
+    ["ρmin", "max(0.8√fc'/fy, 14/fy)", fx(F.rhoMin, 5)],
+    ["ρmax", "ที่ εt = 0.005", fx(F.rhoMax, 5)],
+    ["As ที่ต้องการ", "", `${fx(F.AsReq)} cm²`],
+    [`As ที่ใช้ (${F.n}-${v.main})`, "", `${fx(F.As)} cm²`],
+    ["เหล็กสูงสุดต่อชั้น", "", `${F.perLayer} เส้น`],
+    ["a", "As fy / (0.85 fc' b)", `${fx(F.a)} cm`],
+    ["c", "a / β₁", `${fx(F.c)} cm`],
+    ["εt", "0.003 (d − c) / c", fx(F.et, 4)],
+    ["φ", "", fx(F.phi, 3)],
+    ["φMn", "φ As fy (d − a/2)", `${fx(F.phiMn)} tf-m`],
+  ]);
+  $("nFlex").innerHTML = notes(F.msgs);
+  $("tShear").innerHTML = rows([
+    ["Vc", "0.53 √fc' b d", `${fx(S.Vc)} tf`],
+    ["φVc", "φ = 0.75", `${fx(0.75 * S.Vc)} tf`],
+    ["Vs ที่ต้องการ", "Vu/φ − Vc", `${fx(S.Vs)} tf`],
+    [`Av (${v.legs} ขา ${v.stir})`, "", `${fx(S.Av, 3)} cm²`],
+    ["s ที่ต้องการ", "Av fyt d / Vs", S.sReq ? `${fx(S.sReq, 1)} cm` : "–"],
+    ["s สูงสุด", "ข้อกำหนดระยะเรียง + Av,min", `${fx(S.sMax, 1)} cm`],
+    ["s ที่ใช้", "ปัดลงทีละ 0.5 cm", `${S.s} cm`],
+    ["φVn", "φ (Vc + Av fyt d / s)", `${fx(S.phiVn)} tf`],
+  ]);
+  $("nShear").innerHTML = notes(S.msgs);
+}
+
+try {
+  const saved = JSON.parse(localStorage.getItem("beam-inputs") || "null");
+  if (saved) for (const f of FIELDS) if (saved[f] != null) $(f).value = saved[f];
+} catch (e) {}
+$("form").addEventListener("input", render);
+$("form").addEventListener("submit", e => e.preventDefault());
+$("reset").addEventListener("click", () => { for (const f of FIELDS) $(f).value = DEFAULTS[f]; render(); });
+render();
+
+// ---- Ask Claude (uses the viewer's own Claude plan) ----
+function summary() {
+  if (!last) return "หน้าตัดไม่ถูกต้อง: ความลึกไม่พอสำหรับระยะหุ้มและเหล็กเสริม";
+  const { v, F, S } = last;
+  return [
+    `หน้าตัด b=${v.b} cm, h=${v.h} cm, ระยะหุ้ม ${v.cover} cm, fc'=${v.fc} ksc, fy=${v.fy} ksc, fyt=${v.fyt} ksc`,
+    `เหล็กหลัก ${v.main}, เหล็กปลอก ${v.stir} ${v.legs} ขา, Mu=${v.Mu} tf-m, Vu=${v.Vu} tf`,
+    `ผลดัด: d=${fx(F.d)} cm, ρreq=${fx(F.rhoReq, 5)}, ρmin=${fx(F.rhoMin, 5)}, ρmax=${fx(F.rhoMax, 5)}, As req=${fx(F.AsReq)} cm², ใช้ ${F.n}-${v.main} As=${fx(F.As)} cm², เหล็กต่อชั้นสูงสุด ${F.perLayer}, εt=${fx(F.et, 4)}, φ=${fx(F.phi, 3)}, φMn=${fx(F.phiMn)} tf-m → ${F.ok ? "ผ่าน" : "ไม่ผ่าน"}`,
+    `ผลเฉือน: Vc=${fx(S.Vc)} tf, Vs req=${fx(S.Vs)} tf, Av=${fx(S.Av, 3)} cm², s max=${fx(S.sMax, 1)} cm, s ใช้=${S.s} cm, φVn=${fx(S.phiVn)} tf → ${S.ok ? "ผ่าน" : "ไม่ผ่าน"}`,
+    `คำเตือนจากโปรแกรม: ${[...F.msgs, ...S.msgs].join(" | ") || "ไม่มี"}`,
+  ].join("\n");
+}
+
+const ERR = {
+  not_granted: "ไม่ได้อนุญาตให้หน้านี้ใช้ Claude",
+  rate_limited: "ใช้งานถี่เกินไปหรือถึงขีดจำกัดการใช้งาน ลองใหม่ภายหลัง",
+  session_expired: "กรุณาเข้าสู่ระบบ Claude ใหม่",
+  refused: "Claude ไม่ตอบคำถามนี้ ลองเปลี่ยนคำถาม",
+};
+(async () => {
+  const sample = await window.claude?.use?.("sample");
+  if (!sample) return;
+  $("askPanel").hidden = false;
+  let ctl = null;
+  const out = $("answer"), stopBtn = $("stop");
+  const btns = [$("askBtn"), $("askReview")];
+  stopBtn.onclick = () => ctl?.abort();
+  async function ask(question) {
+    ctl = new AbortController();
+    btns.forEach(b => b.disabled = true); stopBtn.hidden = false;
+    out.textContent = "กำลังคิด...";
+    const prompt = `คุณเป็นวิศวกรโครงสร้างผู้ช่วยตรวจงานออกแบบคาน คสล. ตามวิธีกำลัง ACI 318 / วสท. (หน่วย kg, cm, ksc, tf)
+ข้อมูลและผลคำนวณจากโปรแกรม (เชื่อถือตัวเลขเหล่านี้ อย่าคำนวณใหม่เองถ้าไม่จำเป็น):
+${summary()}
+
+คำถาม: ${question}
+
+ตอบเป็นภาษาไทย กระชับ เป็นข้อๆ ไม่เกิน 200 คำ ใช้ข้อความธรรมดาไม่ใช้ markdown ถ้าเสนอให้เปลี่ยนขนาดหน้าตัดหรือเหล็ก ให้บอกเหตุผลและแนะนำให้ผู้ใช้ลองกรอกค่าใหม่ในโปรแกรมเพื่อตรวจสอบ`;
+    try {
+      await sample(prompt, { signal: ctl.signal, onText: ({ text }) => { out.textContent = text; } });
+    } catch (e) {
+      out.textContent = e.text ?? "";
+      if (e.code === "not_granted" || e.code === "sampling_disabled") { $("askPanel").hidden = true; return; }
+      if (e.code !== "cancelled") out.textContent += (out.textContent ? "\n\n" : "") + (ERR[e.code] || "เชื่อมต่อ Claude ไม่สำเร็จ ลองอีกครั้ง");
+    } finally {
+      btns.forEach(b => b.disabled = false); stopBtn.hidden = true;
+    }
+  }
+  $("askReview").onclick = () => ask("ตรวจผลการออกแบบนี้ ชี้จุดที่ควรระวัง และแนะนำว่าหน้าตัดหรือเหล็กเสริมควรปรับอย่างไรให้ประหยัดหรือปลอดภัยขึ้น");
+  $("askBtn").onclick = () => { const q = $("q").value.trim(); if (q) ask(q); };
+  $("q").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("askBtn").click(); } });
+})();
+</script>
